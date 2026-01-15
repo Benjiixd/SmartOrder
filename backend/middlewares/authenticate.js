@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
+const { loadKey } = require('../runtime/jwtKeys');
 require('dotenv').config();
+
+const jwtPublicKey = loadKey('JWT_PUBLIC_KEY', 'JWT_PUBLIC_KEY_PATH', 'JWT public key');
+const jwtAlgorithm = process.env.JWT_ALGORITHM || 'RS256';
 
 /**
  * Middleware to authenticate the user using it's JWT token
@@ -10,7 +14,7 @@ require('dotenv').config();
 const authenticate = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
-        jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret', (err, user) => {
+        jwt.verify(token, jwtPublicKey, { algorithms: [jwtAlgorithm] }, (err, user) => {
             if (err) {
                 return res.sendStatus(403);
             }

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const sql = require('../db/db');
 const runtime = require('../runtime/runtime');
+const { loadKey } = require('../runtime/jwtKeys');
 require('dotenv').config();
 
 /**
@@ -8,7 +9,9 @@ require('dotenv').config();
  */
 class UserHandler {
     constructor() {
-        this.jwtSecret = process.env.JWT_SECRET || 'your_jwt_secret';
+        this.jwtPrivateKey = loadKey('JWT_PRIVATE_KEY', 'JWT_PRIVATE_KEY_PATH', 'JWT private key');
+        this.jwtPublicKey = loadKey('JWT_PUBLIC_KEY', 'JWT_PUBLIC_KEY_PATH', 'JWT public key');
+        this.jwtAlgorithm = process.env.JWT_ALGORITHM || 'RS256';
         this.saltRounds = 10;
     }
 
@@ -27,7 +30,11 @@ class UserHandler {
         const result = await sql.functions.insertRow('users', { name: username, password_hash: hashedPassword, email: email});
         if (result.affectedRows === 0) throw new Error('Failed to register user');
 
-        const token = jwt.sign({ id: process.env.HIDE_USERID ? null : result.insertId, username }, this.jwtSecret, { expiresIn: '7d' });
+        const token = jwt.sign(
+            { id: process.env.HIDE_USERID ? null : result.insertId, username },
+            this.jwtPrivateKey,
+            { expiresIn: '7d', algorithm: this.jwtAlgorithm }
+        );
         return token;
     }
 
@@ -41,13 +48,18 @@ class UserHandler {
      * const token = await userHandler.loginUser('testuser', 'testpassword');
      */
     async loginUser(username, password) {
+        console.log("Login attempt for user:", username);
         const user = await sql.functions.getRow('users', { name: username });
         if (!user) throw new Error('User not found');
 
         const isMatch = await runtime.compareHash(password, user.password_hash);
         if (!isMatch) throw new Error('Invalid credentials');
 
-        const token = jwt.sign({ id: process.env.HIDE_USERID ? null : user.id, username: user.name }, this.jwtSecret, { expiresIn: '7d' });
+        const token = jwt.sign(
+            { id: process.env.HIDE_USERID ? null : user.id, username: user.name },
+            this.jwtPrivateKey,
+            { expiresIn: '7d', algorithm: this.jwtAlgorithm }
+        );
         return token;
     }
 
@@ -61,7 +73,7 @@ class UserHandler {
      */
     verifyToken(token) {
         try {
-            const decoded = jwt.verify(token, this.jwtSecret);
+            const decoded = jwt.verify(token, this.jwtPublicKey, { algorithms: [this.jwtAlgorithm] });
             return decoded;
         } catch (err) {
             throw new Error('Invalid token');

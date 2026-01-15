@@ -70,7 +70,13 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
     ```bash
         # Application settings
         PORT=5005
-        JWT_SECRET=your_jwt_secret
+        JWT_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
+        JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
+        # Optional: use file paths instead of inline keys
+        # JWT_PRIVATE_KEY_PATH=./keys/jwt-private.pem
+        # JWT_PUBLIC_KEY_PATH=./keys/jwt-public.pem
+        # Optional: default is RS256
+        # JWT_ALGORITHM=RS256
 
         # Light API settings
         HIDE_USERID=true # Hide user id in the user token

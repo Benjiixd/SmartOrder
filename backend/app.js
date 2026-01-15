@@ -27,7 +27,10 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Enable CORS
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true,
+}));
 
 // Middleware to parse JSON bodies
 app.use(express.json());

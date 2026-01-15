@@ -9,7 +9,7 @@ import {
   ListItems,
   ListProvider,
 } from "@/components/kibo-ui/list";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
@@ -42,7 +42,16 @@ const exampleFeatures = Array.from({ length: 20 })
   }));
 
 const Example = () => {
+  const [isMounted, setIsMounted] = useState(false);
   const [features, setFeatures] = useState(exampleFeatures);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

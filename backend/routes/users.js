@@ -32,10 +32,23 @@ router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         const token = await userHandler.loginUser(username, password);
-        res.json({ token });
+        res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'lax' });
+        res.json({ ok: true, token });
     } catch (error) {
         res.status(401).json({ error: error.message });
     }
 });
+
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+  res.json({ ok: true });
+});
+
 
 module.exports = router;

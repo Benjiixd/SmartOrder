@@ -12,7 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import logo from "@/lib/images/example-logo.png";
 import { Menu } from 'lucide-react';
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import {
     Avatar,
@@ -34,10 +34,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function Header() {
-    const [isSticky, setIsSticky] = useState(false);
 
+export function Header({ user }: { user: any | null }) {
+    const [isSticky, setIsSticky] = useState(false);
+    
+   
+    
     useEffect(() => {
+        
         const handleScroll = () => {
             setIsSticky(window.scrollY > 0);
         };
@@ -75,7 +79,7 @@ export function Header() {
                 {/* HÖGER */}
                 <div className="flex items-center gap-2">
                     <ModeToggle />
-                    <Icon></Icon>
+                    <Icon user={user}></Icon>
                     <Image src={logo} alt="Logo" width={120} height={40} />
                 </div>
 
@@ -84,67 +88,75 @@ export function Header() {
     );
 }
 
-function Icon() {
+function Icon({ user }: { user: any | null }) {
+    console.log("User in Icon component:", user);
+    const isLoggedIn = !!user;
+
+    async function logout() {
+        // Clear the token cookie by setting it to an expired date
+        await fetch("http://localhost:5005/users/logout", {
+            method: "POST",
+            credentials: "include",
+        });
+        // Optionally, you can redirect the user to the login page or homepage
+        window.location.href = "/";
+    }
+
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Avatar className="rounded-lg">
+                <Avatar
+                    className={`rounded-lg cursor-pointer ${!isLoggedIn && "opacity-60"
+                        }`}
+                >
                     <AvatarImage
                         src="https://github.com/evilrabbit.png"
-                        alt="@evilrabbit"
+                        alt="avatar"
                     />
                     <AvatarFallback>ER</AvatarFallback>
                 </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="start">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+
+            <DropdownMenuContent className="w-56" align="end">
+                <DropdownMenuLabel>
+                    {isLoggedIn ? user.username : "Guest"}
+                </DropdownMenuLabel>
+
                 <DropdownMenuGroup>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem disabled={!isLoggedIn}>
                         Profile
-                        <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem disabled={!isLoggedIn}>
                         Billing
-                        <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem disabled={!isLoggedIn}>
                         Settings
-                        <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        Keyboard shortcuts
-                        <DropdownMenuShortcut>⌘K</DropdownMenuShortcut>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
+
                 <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                    <DropdownMenuItem>Team</DropdownMenuItem>
-                    <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>Invite users</DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                                <DropdownMenuItem>Email</DropdownMenuItem>
-                                <DropdownMenuItem>Message</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>More...</DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                    <DropdownMenuItem>
-                        New Team
-                        <DropdownMenuShortcut>⌘+T</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>GitHub</DropdownMenuItem>
-                <DropdownMenuItem>Support</DropdownMenuItem>
-                <DropdownMenuItem disabled>API</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                    Log out
-                    <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+
+                <DropdownMenuItem disabled={!isLoggedIn}>
+                    Support
                 </DropdownMenuItem>
+
+                <DropdownMenuItem disabled>
+                    API
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                {isLoggedIn ? (
+                    <DropdownMenuItem onClick={logout}className="text-red-600">
+                        Log out
+                    </DropdownMenuItem>
+                ) : (
+                    <DropdownMenuItem>
+                        <Link href="/login">Log in</Link>
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
-    )
+    );
 }
