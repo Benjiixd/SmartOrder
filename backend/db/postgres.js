@@ -14,7 +14,7 @@ const functions = {
      * const users = await sql.functions.getRows('users');
      */
     async getRows(table) {
-        return await sql`SELECT * FROM ${table}`;
+        return await sql`SELECT * FROM ${sql(table)}`;
     },
 
     /**
@@ -26,7 +26,17 @@ const functions = {
      * const user = await sql.functions.getRow('users', { id: 1 });
      */
     async getRow(table, selector) {
-        return (await sql`SELECT * FROM ${table} WHERE ${sql(selector)}`);
+        const keys = Object.keys(selector);
+        if (keys.length === 0) return undefined;
+
+        const conditions = keys.map((key, index) => (
+            index === 0
+                ? sql`${sql(key)} = ${selector[key]}`
+                : sql`AND ${sql(key)} = ${selector[key]}`
+        ));
+
+        const rows = await sql`SELECT * FROM ${sql(table)} WHERE ${conditions}`;
+        return rows[0];
     },
 
     /**
@@ -39,7 +49,7 @@ const functions = {
      * const result = await sql.functions.updateRow('users', { name: 'John Doe' }, { id: 1 });
      */
     async updateRow(table, data, selector) {
-        return await sql`UPDATE ${table} SET ${sql(data)} WHERE ${sql(selector)}`;
+        return await sql`UPDATE ${sql(table)} SET ${sql(data)} WHERE ${sql(selector)}`;
     },
 
     /**
@@ -51,7 +61,7 @@ const functions = {
      * const result = await sql.functions.insertRow('users', { name: 'John Doe',  id: 1 });
      */
     async insertRow(table, data) {
-        return await sql`INSERT INTO ${table} ${sql(data)}`;
+        return await sql`INSERT INTO ${sql(table)} ${sql(data)}`;
     }
 }
 
