@@ -1,66 +1,31 @@
-'use client';
-import React from 'react';
-import {
-  Switch as AriaSwitch,
-  SwitchProps as AriaSwitchProps
-} from 'react-aria-components';
-import { tv } from 'tailwind-variants';
-import { composeTailwindRenderProps, focusRing } from '@/lib/react-aria-utils';
+"use client"
 
-export interface SwitchProps extends Omit<AriaSwitchProps, 'children'> {
-  children: React.ReactNode;
-}
+import * as React from "react"
+import * as SwitchPrimitive from "@radix-ui/react-switch"
 
-const track = tv({
-  extend: focusRing,
-  base: 'flex h-5 w-9 box-border px-px items-center shrink-0 cursor-default rounded-full transition duration-200 ease-in-out shadow-inner border border-transparent font-sans',
-  variants: {
-    isSelected: {
-      false: 'bg-neutral-100 dark:bg-neutral-800 group-pressed:bg-neutral-200 dark:group-pressed:bg-neutral-700 border-neutral-400 dark:border-neutral-400',
-      true: 'bg-neutral-700 dark:bg-neutral-300 forced-colors:bg-[Highlight]! group-pressed:bg-neutral-800 dark:group-pressed:bg-neutral-200',
-    },
-    isDisabled: {
-      true: 'bg-neutral-100 dark:bg-neutral-800 group-selected:bg-neutral-300 dark:group-selected:bg-neutral-800 forced-colors:group-selected:bg-[GrayText]! border-neutral-300 dark:border-neutral-900 forced-colors:border-[GrayText]',
-    }
-  }
-});
+import { cn } from "@/lib/utils"
 
-const handle = tv({
-  base: 'h-4 w-4 transform rounded-full outline outline-1 -outline-offset-1 outline-transparent shadow-xs transition duration-200 ease-in-out',
-  variants: {
-    isSelected: {
-      false: 'translate-x-0 bg-neutral-900 dark:bg-neutral-300',
-      true: 'translate-x-[100%] bg-white dark:bg-neutral-900'
-    },
-    isDisabled: {
-      true: 'forced-colors:outline-[GrayText]'
-    }
-  },
-  compoundVariants: [
-    {
-      isSelected: false,
-      isDisabled: true,
-      class: 'bg-neutral-300 dark:bg-neutral-700'
-    },
-    {
-      isSelected: true,
-      isDisabled: true,
-      class: 'bg-neutral-50 dark:bg-neutral-700'
-    }
-  ]
-});
-
-export function Switch({ children, ...props }: SwitchProps) {
+function Switch({
+  className,
+  ...props
+}: React.ComponentProps<typeof SwitchPrimitive.Root>) {
   return (
-    <AriaSwitch {...props} className={composeTailwindRenderProps(props.className, 'group relative flex gap-2 items-center text-neutral-800 disabled:text-neutral-300 dark:text-neutral-200 dark:disabled:text-neutral-600 forced-colors:disabled:text-[GrayText] text-sm transition [-webkit-tap-highlight-color:transparent]')}>
-      {(renderProps) => (
-        <>
-          <div className={track(renderProps)}>
-            <span className={handle(renderProps)} />
-          </div>
-          {children}
-        </>
+    <SwitchPrimitive.Root
+      data-slot="switch"
+      className={cn(
+        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        className
       )}
-    </AriaSwitch>
-  );
+      {...props}
+    >
+      <SwitchPrimitive.Thumb
+        data-slot="switch-thumb"
+        className={cn(
+          "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+        )}
+      />
+    </SwitchPrimitive.Root>
+  )
 }
+
+export { Switch }

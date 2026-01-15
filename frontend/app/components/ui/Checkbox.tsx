@@ -1,55 +1,32 @@
-'use client';
-import { Check, Minus } from 'lucide-react';
-import React from 'react';
-import { Checkbox as AriaCheckbox, CheckboxProps, composeRenderProps } from 'react-aria-components';
-import { tv } from 'tailwind-variants';
-import { focusRing } from '@/lib/react-aria-utils';
+"use client"
 
-const checkboxStyles = tv({
-  base: 'flex gap-2 items-center group font-sans text-sm transition relative [-webkit-tap-highlight-color:transparent]',
-  variants: {
-    isDisabled: {
-      false: 'text-neutral-800 dark:text-neutral-200',
-      true: 'text-neutral-300 dark:text-neutral-600 forced-colors:text-[GrayText]'
-    }
-  }
-});
+import * as React from "react"
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
+import { CheckIcon } from "lucide-react"
 
-const boxStyles = tv({
-  extend: focusRing,
-  base: 'w-4.5 h-4.5 box-border shrink-0 rounded-sm flex items-center justify-center border transition',
-  variants: {
-    isSelected: {
-      false: 'bg-white dark:bg-neutral-900 border-(--color) [--color:var(--color-neutral-400)] dark:[--color:var(--color-neutral-400)] group-pressed:[--color:var(--color-neutral-500)] dark:group-pressed:[--color:var(--color-neutral-300)]',
-      true: 'bg-(--color) border-(--color) [--color:var(--color-neutral-700)] group-pressed:[--color:var(--color-neutral-800)] dark:[--color:var(--color-neutral-300)] dark:group-pressed:[--color:var(--color-neutral-200)] forced-colors:[--color:Highlight]!'
-    },
-    isInvalid: {
-      true: '[--color:var(--color-red-700)] dark:[--color:var(--color-red-600)] forced-colors:[--color:Mark]! group-pressed:[--color:var(--color-red-800)] dark:group-pressed:[--color:var(--color-red-700)]'
-    },
-    isDisabled: {
-      true: '[--color:var(--color-neutral-200)] dark:[--color:var(--color-neutral-700)] forced-colors:[--color:GrayText]!'
-    }
-  }
-});
+import { cn } from "@/lib/utils"
 
-const iconStyles = 'w-3.5 h-3.5 text-white group-disabled:text-neutral-400 dark:text-neutral-900 dark:group-disabled:text-neutral-600 forced-colors:text-[HighlightText]';
-
-export function Checkbox(props: CheckboxProps) {
+function Checkbox({
+  className,
+  ...props
+}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
   return (
-    <AriaCheckbox {...props} className={composeRenderProps(props.className, (className, renderProps) => checkboxStyles({...renderProps, className}))}>
-      {composeRenderProps(props.children, (children, {isSelected, isIndeterminate, ...renderProps}) => (
-        <>
-          <div className={boxStyles({isSelected: isSelected || isIndeterminate, ...renderProps})}>
-            {isIndeterminate
-              ? <Minus aria-hidden className={iconStyles} />
-              : isSelected
-                ? <Check aria-hidden className={iconStyles} />
-                : null
-            }
-          </div>
-          {children}
-        </>
-      ))}
-    </AriaCheckbox>
-  );
+    <CheckboxPrimitive.Root
+      data-slot="checkbox"
+      className={cn(
+        "peer border-input dark:bg-input/30 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator
+        data-slot="checkbox-indicator"
+        className="grid place-content-center text-current transition-none"
+      >
+        <CheckIcon className="size-3.5" />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  )
 }
+
+export { Checkbox }

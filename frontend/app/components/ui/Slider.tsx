@@ -1,88 +1,63 @@
-'use client';
-import React from 'react';
-import {
-  Slider as AriaSlider,
-  SliderProps as AriaSliderProps,
-  SliderOutput,
-  SliderThumb,
-  SliderTrack
-} from 'react-aria-components';
-import { tv } from 'tailwind-variants';
-import { Label } from '@/components/ui/Field';
-import { composeTailwindRenderProps, focusRing } from '@/lib/react-aria-utils';
+"use client"
 
-const trackStyles = tv({
-  base: 'rounded-full',
-  variants: {
-    orientation: {
-      horizontal: 'w-full h-[6px]',
-      vertical: 'h-full w-[6px] ml-[50%] -translate-x-[50%]'
-    },
-    isDisabled: {
-      false: 'bg-neutral-300 dark:bg-neutral-700 forced-colors:bg-[ButtonBorder]',
-      true: 'bg-neutral-200 dark:bg-neutral-800 forced-colors:bg-[ButtonBorder]'
-    }
-  }
-});
+import * as React from "react"
+import * as SliderPrimitive from "@radix-ui/react-slider"
 
-const fillStyles = tv({
-  base: 'absolute rounded-full',
-  variants: {
-    orientation: {
-      horizontal: 'w-(--size) h-[6px] start-(--start,0)',
-      vertical: 'h-(--size) w-[6px] bottom-(--start,0) ml-[50%] -translate-x-[50%]'
-    },
-    isDisabled: {
-      false: 'bg-blue-500 forced-colors:bg-[Highlight]',
-      true: 'bg-neutral-300 dark:bg-neutral-600 forced-colors:bg-[GrayText]'
-    }
-  }
-});
+import { cn } from "@/lib/utils"
 
-const thumbStyles = tv({
-  extend: focusRing,
-  base: 'w-4.5 h-4.5 group-orientation-horizontal:mt-5 group-orientation-vertical:ml-2.5 rounded-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-700 dark:border-neutral-300',
-  variants: {
-    isDragging: {
-      true: 'bg-neutral-700 dark:bg-neutral-300 forced-colors:bg-[ButtonBorder]'
-    },
-    isDisabled: {
-      true: 'border-neutral-300 dark:border-neutral-700 forced-colors:border-[GrayText]'
-    }
-  }
-});
+function Slider({
+  className,
+  defaultValue,
+  value,
+  min = 0,
+  max = 100,
+  ...props
+}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+  const _values = React.useMemo(
+    () =>
+      Array.isArray(value)
+        ? value
+        : Array.isArray(defaultValue)
+          ? defaultValue
+          : [min, max],
+    [value, defaultValue, min, max]
+  )
 
-export interface SliderProps<T> extends AriaSliderProps<T> {
-  label?: string;
-  thumbLabels?: string[];
-}
-
-export function Slider<T extends number | number[]>(
-  { label, thumbLabels, ...props }: SliderProps<T>
-) {
   return (
-    <AriaSlider {...props} className={composeTailwindRenderProps(props.className, 'font-sans orientation-horizontal:grid orientation-vertical:flex grid-cols-[1fr_auto] flex-col items-center gap-2 orientation-horizontal:w-64 orientation-horizontal:max-w-[calc(100%-10px)]')}>
-      <Label>{label}</Label>
-      <SliderOutput className="text-sm text-neutral-500 dark:text-neutral-400 orientation-vertical:hidden">
-        {({ state }) => state.values.map((_, i) => state.getThumbValueLabel(i)).join(' – ')}
-      </SliderOutput>
-      <SliderTrack className="group col-span-2 orientation-horizontal:h-5 orientation-vertical:w-5 orientation-vertical:h-38 flex items-center">
-        {({ state, ...renderProps }) => <>
-          <div className={trackStyles(renderProps)} />
-          {state.values.length === 1
-            // Single thumb, render fill from the end
-            ? <div
-                className={fillStyles(renderProps)}
-                style={{'--size': state.getThumbPercent(0) * 100 + '%'} as any} />
-            : state.values.length === 2
-              // Range slider, render fill between the thumbs
-              ? <div
-                  className={fillStyles(renderProps)}
-                  style={{'--start': state.getThumbPercent(0) * 100 + '%', '--size': (state.getThumbPercent(1) - state.getThumbPercent(0)) * 100 + '%'} as any} />
-              : null}
-          {state.values.map((_, i) => <SliderThumb key={i} index={i} aria-label={thumbLabels?.[i]} className={thumbStyles} />)}
-        </>}
-      </SliderTrack>
-    </AriaSlider>
-  );
+    <SliderPrimitive.Root
+      data-slot="slider"
+      defaultValue={defaultValue}
+      value={value}
+      min={min}
+      max={max}
+      className={cn(
+        "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        className
+      )}
+      {...props}
+    >
+      <SliderPrimitive.Track
+        data-slot="slider-track"
+        className={cn(
+          "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+        )}
+      >
+        <SliderPrimitive.Range
+          data-slot="slider-range"
+          className={cn(
+            "bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+          )}
+        />
+      </SliderPrimitive.Track>
+      {Array.from({ length: _values.length }, (_, index) => (
+        <SliderPrimitive.Thumb
+          data-slot="slider-thumb"
+          key={index}
+          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+        />
+      ))}
+    </SliderPrimitive.Root>
+  )
 }
+
+export { Slider }

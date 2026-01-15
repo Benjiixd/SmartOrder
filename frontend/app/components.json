@@ -19,6 +19,7 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@react-aria": "https://react-aria.adobe.com/registry/{name}.json"
+    "@react-aria": "https://react-aria.adobe.com/registry/{name}.json",
+    "@kibo-ui": "https://www.kibo-ui.com/r/{name}.json"
   }
 }

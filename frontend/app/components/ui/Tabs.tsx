@@ -1,111 +1,66 @@
-'use client';
-import React from 'react';
-import {
-  Tab as RACTab,
-  TabList as RACTabList,
-  TabPanels as RACTabPanels,
-  TabPanel as RACTabPanel,
-  Tabs as RACTabs,
-  SelectionIndicator,
-  TabListProps,
-  TabPanelProps,
-  TabPanelsProps,
-  TabProps,
-  TabsProps,
-  composeRenderProps
-} from 'react-aria-components';
-import { tv } from 'tailwind-variants';
-import { focusRing } from '@/lib/react-aria-utils';
-import { twMerge } from 'tailwind-merge';
+"use client"
 
-const tabsStyles = tv({
-  base: 'flex gap-4 font-sans max-w-full',
-  variants: {
-    orientation: {
-      horizontal: 'flex-col',
-      vertical: 'flex-row'
-    }
-  }
-});
+import * as React from "react"
+import * as TabsPrimitive from "@radix-ui/react-tabs"
 
-export function Tabs(props: TabsProps) {
+import { cn } from "@/lib/utils"
+
+function Tabs({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Root>) {
   return (
-    <RACTabs
+    <TabsPrimitive.Root
+      data-slot="tabs"
+      className={cn("flex flex-col gap-2", className)}
       {...props}
-      className={composeRenderProps(
-        props.className,
-        (className, renderProps) => tabsStyles({...renderProps, className})
-      )} />
-  );
+    />
+  )
 }
 
-const tabListStyles = tv({
-  base: 'flex max-w-full p-1 -m-1 overflow-x-auto overflow-y-clip [scrollbar-width:none]',
-  variants: {
-    orientation: {
-      horizontal: 'flex-row',
-      vertical: 'flex-col items-start'
-    }
-  }
-});
-
-export function TabList<T extends object>(props: TabListProps<T>) {
+function TabsList({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.List>) {
   return (
-    <RACTabList
+    <TabsPrimitive.List
+      data-slot="tabs-list"
+      className={cn(
+        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+        className
+      )}
       {...props}
-      className={composeRenderProps(
-        props.className,
-        (className, renderProps) => tabListStyles({...renderProps, className})
-      )} />
-  );
+    />
+  )
 }
 
-const tabProps = tv({
-  extend: focusRing,
-  base: 'group relative flex items-center cursor-default rounded-full px-3 py-1.5 text-sm font-medium transition forced-color-adjust-none [-webkit-tap-highlight-color:transparent]',
-  variants: {
-    isDisabled: {
-      true: 'text-neutral-200 dark:text-neutral-600 forced-colors:text-[GrayText] selected:text-white dark:selected:text-neutral-500 forced-colors:selected:text-[HighlightText] selected:bg-neutral-200 dark:selected:bg-neutral-600 forced-colors:selected:bg-[GrayText]'
-    }
-  }
-});
-
-export function Tab(props: TabProps) {
+function TabsTrigger({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
   return (
-    <RACTab
+    <TabsPrimitive.Trigger
+      data-slot="tabs-trigger"
+      className={cn(
+        "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
       {...props}
-      className={composeRenderProps(
-        props.className,
-        (className, renderProps) => tabProps({...renderProps, className})
-      )}>
-      {composeRenderProps(props.children, children => (<>
-        {children}
-        <SelectionIndicator className="absolute top-0 left-0 w-full h-full z-10 bg-white rounded-full mix-blend-difference group-disabled:bg-neutral-400 group-disabled:mix-blend-normal group-disabled:dark:bg-neutral-600 group-disabled:-z-1 motion-safe:transition-[translate,width,height] " />
-      </>))}
-    </RACTab>
-  );
+    />
+  )
 }
 
-export function TabPanels<T extends object>(props: TabPanelsProps<T>) {
+function TabsContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Content>) {
   return (
-    <RACTabPanels
+    <TabsPrimitive.Content
+      data-slot="tabs-content"
+      className={cn("flex-1 outline-none", className)}
       {...props}
-      className={twMerge('relative h-(--tab-panel-height) motion-safe:transition-[height] overflow-clip', props.className)} />
-  );
+    />
+  )
 }
 
-const tabPanelStyles = tv({
-  extend: focusRing,
-  base: 'flex-1 box-border p-4 text-sm text-neutral-900 dark:text-neutral-100 transition entering:opacity-0 exiting:opacity-0 exiting:absolute exiting:top-0 exiting:left-0 exiting:w-full'
-});
-
-export function TabPanel(props: TabPanelProps) {
-  return (
-    <RACTabPanel
-      {...props}
-      className={composeRenderProps(
-        props.className,
-        (className, renderProps) => tabPanelStyles({...renderProps, className})
-      )} />
-  );
-}
+export { Tabs, TabsList, TabsTrigger, TabsContent }
