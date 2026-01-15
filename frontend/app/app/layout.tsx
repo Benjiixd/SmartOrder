@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "./header";
+import { ThemeProvider } from "@/components/theme-provider"
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,23 +36,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="flex min-h-screen flex-col">
-
-          <Sheet>
-          <Header />
-            <Sidebar />
-          </Sheet>
-          <div className="flex flex-1">
-            
-            <main className="flex-1 p-6">
-              {children}
-            </main>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="flex min-h-screen flex-col">
+            <Sheet>
+              <Header />
+              <Sidebar />
+            </Sheet>
+            <div className="flex flex-1">
+              <main className="flex-1 p-6">{children}</main>
+            </div>
           </div>
-        </div>
+        </ThemeProvider>
       </body>
     </html>
   );
@@ -99,4 +103,3 @@ const Sidebar = () => (
     </SheetContent>
   
 );
-
