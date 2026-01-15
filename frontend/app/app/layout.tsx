@@ -2,7 +2,17 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "./header";
-import Sidebar from "./Sidebar";
+
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,9 +40,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <div className="flex min-h-screen flex-col">
+
+          <Sheet>
           <Header />
-          <div className="flex flex-1">
             <Sidebar />
+          </Sheet>
+          <div className="flex flex-1">
+            
             <main className="flex-1 p-6">
               {children}
             </main>
@@ -42,3 +56,47 @@ export default function RootLayout({
     </html>
   );
 }
+
+const Sidebar = () => (
+  
+    
+    <SheetContent side="left">
+      <SheetHeader>
+        <SheetTitle>Navigation</SheetTitle>
+      </SheetHeader>
+      <nav className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-2">
+          <h3 className="font-semibold text-sm">Dashboard</h3>
+          <a
+            className="pl-4 text-muted-foreground text-sm hover:text-foreground"
+            href="#"
+          >
+            Overview
+          </a>
+          <a
+            className="pl-4 text-muted-foreground text-sm hover:text-foreground"
+            href="#"
+          >
+            Analytics
+          </a>
+        </div>
+        <div className="flex flex-col gap-2">
+          <h3 className="font-semibold text-sm">Settings</h3>
+          <a
+            className="pl-4 text-muted-foreground text-sm hover:text-foreground"
+            href="#"
+          >
+            Profile
+          </a>
+          <a
+            className="pl-4 text-muted-foreground text-sm hover:text-foreground"
+            href="#"
+          >
+            Account
+          </a>
+        </div>
+      </nav>
+    </SheetContent>
+  
+);
+
