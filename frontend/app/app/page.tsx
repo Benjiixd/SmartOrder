@@ -1,120 +1,35 @@
 "use client";
+import { Card } from "@/components/ui/card";
+import Image from "next/image";
 
-import { faker } from "@faker-js/faker";
-import type { DragEndEvent } from "@/components/kibo-ui/list";
-import {
-  ListGroup,
-  ListHeader,
-  ListItem,
-  ListItems,
-  ListProvider,
-} from "@/components/kibo-ui/list";
-import { useEffect, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+const exampleObject = {
+  name: "Kycklingburgare, Kycklingköttbullar",
+  text: "Kronfågel. Ursprung Sverige. 540-600 g. Jmfpris 65:83-73:15/kg. Ord.pris 58:90-62:90 kr.",
+  price: "2 för 79 kr",
+  imageUrl: "https://assets.icanet.se/$y_h,$x_w,$pi_current:public_id/c_fit,w_$x,h_$y,u_7300327602004,x_$y_mul_-0.3,y_$x_mul_0.6,g_south_east/c_lpad,q_auto,f_auto,w_200,h_200/7300327552002"
+}
 
-const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
-
-faker.seed(12345);
-
-const statuses = [
-  { id: faker.string.uuid(), name: "Planned", color: "#6B7280" },
-  { id: faker.string.uuid(), name: "In Progress", color: "#F59E0B" },
-  { id: faker.string.uuid(), name: "Done", color: "#10B981" },
-];
-
-const users = Array.from({ length: 4 })
-  .fill(null)
-  .map(() => ({
-    id: faker.string.uuid(),
-    name: faker.person.fullName(),
-    image: faker.image.avatar(),
-  }));
-
-const exampleFeatures = Array.from({ length: 20 })
-  .fill(null)
-  .map(() => ({
-    id: faker.string.uuid(),
-    name: capitalize(faker.company.buzzPhrase()),
-    startAt: faker.date.past({ years: 0.5, refDate: new Date("2024-01-01T00:00:00Z") }),
-    endAt: faker.date.future({ years: 0.5, refDate: new Date("2024-01-01T00:00:00Z") }),
-    status: faker.helpers.arrayElement(statuses),
-    owner: faker.helpers.arrayElement(users),
-  }));
-
-const Example = () => {
-  const [isMounted, setIsMounted] = useState(false);
-  const [features, setFeatures] = useState(exampleFeatures);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return null;
-  }
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over) {
-      return;
-    }
-
-    const status = statuses.find((status) => status.name === over.id);
-
-    if (!status) {
-      return;
-    }
-
-    setFeatures(
-      features.map((feature) => {
-        if (feature.id === active.id) {
-          return { ...feature, status };
-        }
-
-        return feature;
-      })
-    );
-  };
-
+const HomePage = () => {
   return (
-    <ListProvider onDragEnd={handleDragEnd}>
-      {statuses.map((status) => (
-        <ListGroup id={status.name} key={status.name}>
-          <ListHeader color={status.color} name={status.name} />
-          <ListItems>
-            {features
-              .filter((feature) => feature.status.name === status.name)
-              .map((feature, index) => (
-                <ListItem
-                  id={feature.id}
-                  index={index}
-                  key={feature.id}
-                  name={feature.name}
-                  parent={feature.status.name}
-                >
-                  <div
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: feature.status.color }}
-                  />
-                  <p className="m-0 flex-1 font-medium text-sm">
-                    {feature.name}
-                  </p>
-                  {feature.owner && (
-                    <Avatar className="h-4 w-4 shrink-0">
-                      <AvatarImage src={feature.owner.image} />
-                      <AvatarFallback>
-                        {feature.owner.name?.slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </ListItem>
-              ))}
-          </ListItems>
-        </ListGroup>
-      ))}
-    </ListProvider>
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <h1 className="text-4xl font-bold">Welcome to the Home Page</h1>
+      <p className="mt-4 text-lg">This is the main content of the home page.</p>
+      <Item title={exampleObject.name} description={exampleObject.text} price={exampleObject.price} imageURL={exampleObject.imageUrl}></Item>
+    </main>
   );
-};
+}
 
-export default Example;
+const Item = ({ title, description, price, imageURL }: { title: string; description: string; price: string; imageURL: string }) => {
+  return (
+    <Card className="w-64 p-4 mt-8">
+      <h2 className="text-2xl font-semibold">{title}</h2>
+      <Image src={imageURL} alt={title} width={200} height={200} className="mt-4 rounded-md" />
+      <p className="mt-2 text-gray-600">{description}</p>
+      <p className="mt-2 text-gray-600">{price}</p>
+
+
+    </Card>
+  );
+}
+
+export default HomePage;
