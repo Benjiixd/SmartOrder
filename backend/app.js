@@ -7,6 +7,7 @@ const logger = require('./logger');
 const userRoutes = require('./routes/users');
 const logRoutes = require('./routes/log');
 const validationRoutes = require('./routes/validation');
+const scrapeRoutes = require('./routes/scrape');
 const routes = require('./routes');
 
 // Middlewares import
@@ -65,6 +66,7 @@ app.use('/users', userRoutes);
 app.use('/api', authenticate, routes); // '/api' routes are protected with the 'authenticate' middleware
 app.use('/log', logRoutes);
 app.use('/validation', validationRoutes);
+app.use('/scrape', scrapeRoutes);
 
 // Root routes
 // curl -X GET http://localhost:5005/welcome
