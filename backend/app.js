@@ -13,6 +13,7 @@ const routes = require('./routes');
 // Middlewares import
 const authenticate = require('./middlewares/authenticate');
 const disabled = require('./middlewares/disabled');
+const { initBrowser, closeBrowser } = require('./services/browser');
 
 // Application
 const app = express();
@@ -81,7 +82,22 @@ app.get('/disabled', disabled, (req, res) => {
 });
 
 const PORT = process.env.PORT || 5005;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    // logger.info(`Server is running on port ${PORT}`); Use this line if you want to log the startup
-});
+
+async function startServer() {
+    await initBrowser();
+
+    const server = app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+        // logger.info(`Server is running on port ${PORT}`); Use this line if you want to log the startup
+    });
+
+    const shutdown = async () => {
+        await closeBrowser();
+        server.close(() => process.exit(0));
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+}
+
+startServer();

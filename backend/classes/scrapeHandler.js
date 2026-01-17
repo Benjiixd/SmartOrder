@@ -1,13 +1,9 @@
 const puppeteer = require("puppeteer");
 
 class ScrapeHandler {
-  async startScrape(url) {
-    const browser = await puppeteer.launch({
-      headless: "new",
-    });
-
+  async startScrape(url, browser) {
+    const page = await browser.newPage();
     try {
-      const page = await browser.newPage();
       await page.setViewport({ width: 1280, height: 800 });
 
       await page.goto(url, { waitUntil: "networkidle2" });
@@ -69,7 +65,7 @@ class ScrapeHandler {
         (o) => o.name || o.text || o.price || o.imageUrl
       );
     } finally {
-      await browser.close();
+      await page.close();
     }
   }
 }
