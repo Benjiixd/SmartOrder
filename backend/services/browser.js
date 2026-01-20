@@ -5,10 +5,10 @@ let browserPromise;
 async function initBrowser() {
   if (!browserPromise) {
     browserPromise = puppeteer.launch({
-      //headless: "new",
-      headless: false,      // 👈 VIKTIGAST
-      slowMo: 50,           // 👈 bromsar varje steg (ms)
-      defaultViewport: null // 👈 så du får riktig desktop
+      headless: "new",
+      //headless: false,      // 👈 VIKTIGAST
+      //slowMo: 50,           // 👈 bromsar varje steg (ms)
+      //defaultViewport: null // 👈 så du får riktig desktop
     });
   }
   return browserPromise;

@@ -1,12 +1,6 @@
-const {
-  parseUnitPrice,
-  calcPercentOff,
-  parseSaveAmount,
-  parseMaxQty,
-  parseSwedishNumber,
-} = require("./pricing");
+const { calcPercentOff, parseSaveAmount, parseMaxQty } = require("./pricing");
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let isFirstRun = true;
 
 async function scrapeWillys(url, browser) {
@@ -15,109 +9,149 @@ async function scrapeWillys(url, browser) {
   try {
     await page.setViewport({ width: 1280, height: 800 });
     await page.goto(url, { waitUntil: "networkidle2" });
-
-    // gå til en butik
     if (isFirstRun) {
-      console.log("Willys: Accepting cookies and selecting store");
       await acceptCookiesIfPresent(page);
-      await selectWillysStore(page, "Växjö"); // kan vara exakt butiksnamn senare
+      await selectWillysStore(page, "Willys Växjö I11"); // exakt är bäst
       isFirstRun = false;
     }
-    
-
-
 
     await page.waitForSelector('[data-testid="product"]', { timeout: 15000 });
+    await autoScroll(page, 10);
 
-    const raw = await page.$$eval('[data-testid="product"]', (cards) => {
-      const cleanText = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : null);
+    const base = new URL(url).origin;
+
+    const items = await page.$$eval('[data-testid="product"]', (cards, base) => {
+      const clean = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : null);
       const attr = (el, name) => (el ? el.getAttribute(name) : null);
 
+      function parsePriceFromCard(card) {
+        function logSometimes(value, chance = 0.1) {
+            if (Math.random() < chance) {
+                console.log(value);
+                }
+}               
+
+        // Leta prisytan
+        const priceArea = card.querySelector('[data-testid^="product-price-"]');
+        if (!priceArea) return { unitPrice: null, unit: null };
+
+        const t = priceArea.textContent.replace(/\s+/g, " ").trim();
+
+        // Ex: "5 för 145" eller "5 för 145 90 /kg"
+        // 1) Multi-buy: "X för Y"
+        const multi = t.match(/(\d+)\s*för\s*([\d.,]+)/i);
+        if (multi) {
+        console.log("multi match", multi);
+          const qty = Number(multi[1]);
+          const total = Number(multi[2].replace(",", "."));
+          if (qty > 0 && Number.isFinite(total)) {
+            return { unitPrice: Number((total / qty).toFixed(2)), unit: "st" };
+          }
+        }
+
+        // 2) Per unit: "69 90 /kg" eller "69,90/kg"
+        const per = t.match(/([\d.,]+)\s*([0-9]{2})?\s*\/\s*([a-zåäö]+)/i);
+        if (per) {
+            logSometimes(per, 0.2);
+          // fånga typ "69" + "90" eller "69,90"
+          let val = per[1].replace(",", ".");
+          if (per[2]) val = `${val}.${per[2]}`;
+          const unitPrice = Number(val);
+          const unit = per[3].toLowerCase();
+          return { unitPrice: Number.isFinite(unitPrice) ? Number(unitPrice.toFixed(2)) : null, unit };
+        }
+
+        // 3) Single: "39 90" eller "39,90"
+        const single = t.match(/([\d.,]+)\s*([0-9]{2})?/);
+        if (single) {
+            logSometimes(single, 0.2);
+          let val = single[1].replace(",", ".");
+          if (single[2]) val = `${val}.${single[2]}`;
+          const unitPrice = Number(val);
+          return { unitPrice: Number.isFinite(unitPrice) ? Number(unitPrice.toFixed(2)) : null, unit: "st" };
+        }
+
+        return { unitPrice: null, unit: null };
+      }
+
       return cards.map((card) => {
-        const name = cleanText(card.querySelector('[itemprop="name"]'));
-        const brand = cleanText(card.querySelector('[itemprop="brand"]'));
+        const name = clean(card.querySelector('[itemprop="name"]'));
+        const brand = clean(card.querySelector('[itemprop="brand"]'));
 
         const img = card.querySelector('img[itemprop="image"]');
         const imageUrl = attr(img, "src");
 
         const linkEl = card.querySelector('a[href*="/erbjudanden/"]');
         const href = attr(linkEl, "href");
+        const productUrl = href ? (href.startsWith("/") ? base + href : href) : null;
 
-        // Spara/max text (den du visade)
         const saveText =
-          cleanText(card.querySelector('[class*="hfSVFg"]')) ||
-          cleanText(card.querySelector('div[class*="czVckR"]')) ||
+          clean(card.querySelector('[class*="hfSVFg"]')) ||
+          clean(card.querySelector('div[class*="czVckR"]')) ||
           null;
 
-        // Försök få "priceText" från synliga prisytan (ibland är meta price bara en siffra)
-        const priceArea = card.querySelector('[data-testid^="product-price-"]');
-        const priceText = priceArea ? cleanText(priceArea) : null;
-
-        // Meta price (schema.org) ifall du vill ha “numeriskt pris”
-        const priceMeta = card.querySelector('[itemprop="offers"] [itemprop="price"]');
-        const priceRaw = attr(priceMeta, "content"); // ex "105,00"
-
-        return {
-          name,
-          brand,
-          imageUrl,
-          href,
-          saveText,
-          priceText,
-          priceRaw,
-        };
-      });
-    });
-
-    const base = new URL(url).origin;
-
-    const items = raw
-      .filter((o) => o.name || o.brand || o.priceText || o.imageUrl)
-      .map((o) => {
-        const productUrl = o.href ? (o.href.startsWith("/") ? base + o.href : o.href) : null;
-
-        // Vilken "priceText" ska vi använda för parsing?
-        // - primärt: synliga texten
-        // - fallback: meta priceRaw -> "105,00 kr"
-        const effectivePriceText =
-          o.priceText ||
-          (o.priceRaw ? `${String(o.priceRaw).replace(",", ":")} kr` : null);
-
-        const { unitPrice, unit } = parseUnitPrice(effectivePriceText);
-
-        // Willys har ofta "Spara X kr", så vi kan räkna ordPrice = unitPrice + saveAmount (om unitPrice är "nu-pris")
-        const saveAmount = parseSaveAmount(o.saveText);
-        const ordPrice = (unitPrice != null && saveAmount != null)
-          ? Number((unitPrice + saveAmount).toFixed(2))
-          : null;
-
-        const percentOff = calcPercentOff(ordPrice, unitPrice);
+        const { unitPrice, unit } = parsePriceFromCard(card);
 
         return {
           store: "WILLYS",
-          name: o.name,
-          description: o.brand,
-          imageUrl: o.imageUrl,
+          name,
+          brand,
+          imageUrl,
           productUrl,
-          priceText: effectivePriceText,
           unitPrice,
           unit,
-          ordPrice,
-          percentOff,
-          saveAmount: saveAmount != null ? Number(saveAmount.toFixed(2)) : null,
-          maxQty: parseMaxQty(o.saveText),
+          saveText,
         };
       });
+    }, base);
 
-    // (bara för att undvika eslint gnäll om du har det)
-    void parseSwedishNumber;
+    // Normalisera sista biten i Node (räkna ordPrice etc)
+    return items
+      .filter((x) => x.name || x.brand || x.unitPrice || x.imageUrl)
+      .map((x) => {
+        const saveAmount = parseSaveAmount(x.saveText);
+        const maxQty = parseMaxQty(x.saveText);
 
-    return items;
+        const ordPrice =
+          x.unitPrice != null && saveAmount != null
+            ? Number((x.unitPrice + saveAmount).toFixed(2))
+            : null;
+
+        const percentOff = calcPercentOff(ordPrice, x.unitPrice);
+
+        return {
+          store: x.store,
+          name: x.name,
+          description: x.brand,
+          imageUrl: x.imageUrl,
+          productUrl: x.productUrl,
+
+          unitPrice: x.unitPrice,
+          unit: x.unit,
+
+          saveAmount,
+          maxQty,
+          ordPrice,
+          percentOff,
+        };
+      });
   } finally {
-    console.log("Closing Willys page");
     await page.close();
   }
 }
+
+async function autoScroll(page, steps = 8) {
+  for (let i = 0; i < steps; i++) {
+    await page.evaluate(() => window.scrollBy(0, window.innerHeight * 1.2));
+    await delay(500);
+  }
+}
+
+
+
+
+
+
 
 async function acceptCookiesIfPresent(page) {
   // OneTrust
@@ -135,6 +169,13 @@ async function acceptCookiesIfPresent(page) {
   // fallback: klicka knapp som innehåller "Acceptera"
   return await clickByText(page, "button", "Acceptera");
 }
+
+
+
+
+
+
+
 
 async function selectWillysStore(page, storeNameExact) {
   // 1) Klicka "Välj butik"
@@ -179,6 +220,11 @@ async function selectWillysStore(page, storeNameExact) {
   await delay(1200);
 }
 
+
+
+
+
+
 // Hjälpfunktion: klicka element av en viss typ som innehåller text
 async function clickByText(page, selector, textIncludes) {
   const ok = await page.evaluate(
@@ -201,6 +247,30 @@ async function clickByText(page, selector, textIncludes) {
 }
 
 
+
+
+
+
+async function autoScrollUntilNoMoreProducts(page, stableRounds = 6) {
+  let lastCount = 0;
+  let sameCountRounds = 0;
+
+  while (sameCountRounds < stableRounds) {
+    const count = await page.$$eval('[data-testid="product"]', els => els.length);
+
+    if (count === lastCount) sameCountRounds++;
+    else sameCountRounds = 0;
+
+    lastCount = count;
+
+    // scrolla ned lite (inte bara till botten direkt)
+    await page.evaluate(() => window.scrollBy(0, window.innerHeight * 1.2));
+    await delay(600); // ge React tid att rendera nästa batch
+  }
+
+  // scrolla tillbaka lite upp om listan är virtualiserad (ibland behövs inte)
+  // await page.evaluate(() => window.scrollTo(0, 0));
+}
 
 
 

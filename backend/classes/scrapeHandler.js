@@ -15,7 +15,7 @@ class ScrapeHandler {
       let items = [];
       console.log(`Scraping ${store} - ${url}`);
       if (store === "ICA") items = await scrapeIca(url, browser);
-      if (store === "WILLYS") items = await scrapeWillys(url, browser);
+      else if (store === "WILLYS") items = await scrapeWillys(url, browser);
       else items = [];
 
       results.push(...items);

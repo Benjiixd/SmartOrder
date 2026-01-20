@@ -16,6 +16,7 @@ type ScrapedItem = {
   unit: string | null;        // "st" | "kg" | "l" | ...
 
   ordPrice: number | null;
+  price: number | null;
   percentOff: number | null;
 
   saveAmount: number | null;
@@ -28,7 +29,7 @@ type ApiResponse = {
 
 const DEFAULT_URLS = [
   "https://www.willys.se/erbjudanden/butik",
-  "https://www.ica.se/erbjudanden/ica-supermarket-cityhallen-vaxjo-1004104/",
+  //"https://www.ica.se/erbjudanden/ica-supermarket-cityhallen-vaxjo-1004104/",
 ];
 
 async function fetchScrapedItems(urls: string[]): Promise<ScrapedItem[]> {
@@ -81,6 +82,7 @@ export default function HomePage() {
     try {
       const result = await fetchScrapedItems(urls);
       setItems(result);
+      console.log("Scraped items:", result);
     } catch (e: any) {
       setError(e?.message ?? String(e));
       setItems([]);
