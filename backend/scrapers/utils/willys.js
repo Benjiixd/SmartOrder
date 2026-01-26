@@ -13,64 +13,99 @@ async function scrapeWillys(url, browser) {
       console.log("Willys: Accept cookies + select store...");
       await acceptCookiesIfPresent(page);
       await selectWillysStore(page, "Willys Växjö I11");
+
+    // scrolla lite så du ser om fler renderas (valfritt)
+      await autoScroll(page, 12);
       isFirstRun = false;
     }
 
     await page.waitForSelector('[data-testid="product"]', { timeout: 15000 });
+    await page.waitForFunction(
+      () => document.querySelectorAll('[data-testid="product"]').length > 0,
+      { timeout: 15000 }
+    );
 
-    // scrolla lite så du ser om fler renderas (valfritt)
-    await autoScroll(page, 12);
+    
 
     // plocka ut “råa” värden från DOM och returnera dem
-    const rows = await page.$$eval('[data-testid="product"]', (cards) => {
-      const clean = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : null);
-      const attr = (el, name) => (el ? el.getAttribute(name) : null);
+    let rows = [];
+    try {
+      rows = await page.$$eval('[data-testid="product"]', (cards) => {
+        const clean = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : null);
+        const attr = (el, name) => (el ? el.getAttribute(name) : null);
 
-      return cards.map((card) => {
-        const name = clean(card.querySelector('[itemprop="name"]'));
-        const brand = clean(card.querySelector('[itemprop="brand"]'));
+        return cards.map((card) => {
+          const name = clean(card.querySelector('[itemprop="name"]'));
+          const brand = clean(card.querySelector('[itemprop="brand"]'));
 
-        const img = card.querySelector('img[itemprop="image"]');
-        const imageUrl = attr(img, "src");
+          const img = card.querySelector('img[itemprop="image"]');
+          const imageUrl = attr(img, "src");
 
-        const linkEl = card.querySelector('a[href*="/erbjudanden/"]');
-        const href = attr(linkEl, "href");
+          const linkEl = card.querySelector('a[href*="/erbjudanden/"]');
+          const href = attr(linkEl, "href");
 
-        const saveText =
-          clean(card.querySelector('[class*="hfSVFg"]')) ||
-          clean(card.querySelector('div[class*="czVckR"]')) ||
-          null;
+          const saveText =
+            clean(card.querySelector('[class*="hfSVFg"]')) ||
+            clean(card.querySelector('div[class*="czVckR"]')) ||
+            null;
 
-        const priceArea = card.querySelector('[data-testid^="product-price-"]');
-        const priceText = priceArea ? clean(priceArea) : null;
-        const price = priceArea ? priceArea.textContent.replace(/\s+/g, " ").trim() : null;
+          const priceArea = card.querySelector('[data-testid^="product-price-"]');
+          const priceText = priceArea ? clean(priceArea) : null;
+          const price = priceArea ? priceArea.textContent.replace(/\s+/g, " ").trim() : null;
 
-        const priceMeta = card.querySelector('[itemprop="offers"] [itemprop="price"]');
-        const ordPrice = attr(priceMeta, "content"); // ex "105,00"
+          const priceMeta = card.querySelector('[itemprop="offers"] [itemprop="price"]');
+          const ordPrice = attr(priceMeta, "content"); // ex "105,00"
 
-        const multiPrefix =
-          clean(card.querySelector('[class*="iSfvdv"]')) || // din "5 för" kan hamna här ibland
-          clean(card.querySelector('div:where(*)')) || null; // ignoreras ofta, men lämnar minimal fallback
+          const multiPrefix =
+            clean(card.querySelector('[class*="iSfvdv"]')) || // din "5 för" kan hamna här ibland
+            clean(card.querySelector('div:where(*)')) || null; // ignoreras ofta, men lämnar minimal fallback
 
+          return {
+            name,
+            brand,
+            priceText,
+            price,
+            ordPrice,
+            saveText,
+            href,
+            imageUrl,
+            multiPrefix,
+          };
+        });
+      });
+    } catch (err) {
+      console.warn("Willys: failed to extract products, returning empty list.", err?.message || err);
+      rows = [];
+    }
+
+    if (!Array.isArray(rows)) {
+      console.warn(
+        "Willys: product extraction returned non-array, returning empty list.",
+        `type=${Object.prototype.toString.call(rows)}`
+      );
+      rows = [];
+    }
+
+    if (rows.length === 0) {
+      const debug = await page.evaluate(() => {
+        const cards = Array.from(document.querySelectorAll('[data-testid="product"]'));
+        const first = cards[0];
         return {
-          name,
-          brand,
-          priceText,
-          price,
-          ordPrice,
-          saveText,
-          href,
-          imageUrl,
-          priceMeta
+          count: cards.length,
+          readyState: document.readyState,
+          firstName: first?.querySelector('[itemprop="name"]')?.textContent?.trim() || null,
+          firstBrand: first?.querySelector('[itemprop="brand"]')?.textContent?.trim() || null,
+          firstPrice: first?.querySelector('[data-testid^="product-price-"]')?.textContent?.trim() || null,
         };
       });
-    });
+      console.log("Willys: debug snapshot", debug);
+    }
 
     // PRINTA RAD FÖR RAD I NODE
-    console.log(`\n--- WILLYS DEBUG: ${rows.length} produkter i DOM ---\n`);
+    //console.log(`\n--- WILLYS DEBUG: ${rows.length} produkter i DOM ---\n`);
 
     rows.forEach((r, i) => {
-    console.log("________________________________");
+      console.log("________________________________");
       console.log(
         [
           `#${String(i + 1).padStart(3, "0")}`,
@@ -82,7 +117,6 @@ async function scrapeWillys(url, browser) {
           `saveText="${r.saveText ?? ""}"`,
           `href="${r.href ?? ""}"`,
           `imageUrl="${r.imageUrl ?? ""}"`,
-          `priceMeta="${r.priceMeta ?? ""}"`,
         ].join(" | ")
       );
     });
