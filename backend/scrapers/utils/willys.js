@@ -63,7 +63,7 @@ function normalizePrice(raw) {
 function printWillysDebugRows(rows) {
   rows.forEach((r, i) => {
     console.log("________________________________");
-    if (r.name=="Oxfilé"){
+    if (r.name!="Oxfilédsadsasda"){
     console.log(
       [
         `#${String(i + 1).padStart(3, "0")}`,
