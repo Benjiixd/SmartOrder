@@ -63,7 +63,7 @@ function normalizePrice(raw) {
 function printWillysDebugRows(rows) {
   rows.forEach((r, i) => {
     console.log("________________________________");
-    if (r.name=="Mango"){
+    if (r.name=="Oxfilé"){
     console.log(
       [
         `#${String(i + 1).padStart(3, "0")}`,
@@ -79,6 +79,7 @@ function printWillysDebugRows(rows) {
         `maximumAmount="${r.maximumAmount ?? ""}"`,
         `singlePriceNum="${r.singlePriceNum ?? ""}"`,
         `savePercent="${r.savePercent ?? ""}"`,
+        `isKiloPrice="${r.isKiloPrice ?? ""}"`,
       ].join(" | ")
     );
   }
@@ -279,6 +280,11 @@ async function extractProducts(page) {
           }
         }
 
+        let isKiloPrice = false;
+        if (priceRaw && priceRaw.toLowerCase().includes('kg')){
+          isKiloPrice = true;
+        }
+
         let savePercent = null;
         if (ordPrice && price) {
           const ordNum = parseFloat(ordPrice.replace(',', '.'));
@@ -306,6 +312,7 @@ async function extractProducts(page) {
           maximumAmount,
           singlePriceNum,
           savePercent,
+          isKiloPrice,
         };
       });
     },
