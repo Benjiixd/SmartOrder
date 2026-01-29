@@ -4,35 +4,32 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 
-type ScrapedItem = {
-  store: string; // "ICA" | "WILLYS" | ...
+type WillysItem = {
   name: string | null;
-  description: string | null;
+  brand: string | null;
   imageUrl: string | null;
-  productUrl: string | null;
+  href: string | null;
 
-  priceText: string | null;   // råtext
-  unitPrice: number | null;   // normaliserat pris per st/kg/l etc (beroende på unit)
-  unit: string | null;        // "st" | "kg" | "l" | ...
-
-  ordPrice: number | null;
-  price: number | null;
-  percentOff: number | null;
-
-  saveAmount: number | null;
-  maxQty: number | null;
+  priceText: string | null;
+  price: string | null;
+  ordPrice: string | null;
+  saveText: string | null;
+  multiPrefix: string | null;
+  maximumAmount: number | null;
+  singlePriceNum: string | null;
+  savePercent: number | null;
+  isKiloPrice: boolean | null;
 };
 
 type ApiResponse = {
-  items: ScrapedItem[];
+  items: WillysItem[];
 };
 
 const DEFAULT_URLS = [
   "https://www.willys.se/erbjudanden/butik",
-  //"https://www.ica.se/erbjudanden/ica-supermarket-cityhallen-vaxjo-1004104/",
 ];
 
-async function fetchScrapedItems(urls: string[]): Promise<ScrapedItem[]> {
+async function fetchScrapedItems(urls: string[]): Promise<WillysItem[]> {
   const res = await fetch("http://localhost:5005/scrape/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -48,19 +45,34 @@ async function fetchScrapedItems(urls: string[]): Promise<ScrapedItem[]> {
   return Array.isArray(data.items) ? data.items : [];
 }
 
-function formatKr(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "—";
-  return `${value.toFixed(2)} kr`;
+function parseSek(value: string | null | undefined) {
+  if (!value) return null;
+  const normalized = value.replace(",", ".").replace(/[^\d.]/g, "");
+  const num = Number.parseFloat(normalized);
+  return Number.isNaN(num) ? null : num;
+}
+
+function formatSek(value: string | null | undefined) {
+  const num = parseSek(value);
+  if (num == null) return "—";
+  return `${num.toFixed(2).replace(".", ",")} kr`;
 }
 
 function formatPct(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "—";
-  return `${value.toFixed(2)}%`;
+  return `${value}%`;
+}
+
+function resolveWillysUrl(href: string | null) {
+  if (!href) return null;
+  if (href.startsWith("http")) return href;
+  if (href.startsWith("/")) return `https://www.willys.se${href}`;
+  return `https://www.willys.se/${href}`;
 }
 
 export default function HomePage() {
   const [urlsText, setUrlsText] = useState(DEFAULT_URLS.join("\n"));
-  const [items, setItems] = useState<ScrapedItem[] | null>(null);
+  const [items, setItems] = useState<WillysItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -101,21 +113,37 @@ export default function HomePage() {
     if (!Array.isArray(items)) return null;
     const list = [...items];
 
-    const num = (v: number | null | undefined, fallback: number) =>
+    const num = (v: string | null | undefined, fallback: number) => {
+      const parsed = parseSek(v);
+      return parsed == null ? fallback : parsed;
+    };
+    const pct = (v: number | null | undefined, fallback: number) =>
       v == null || !Number.isFinite(v) ? fallback : v;
 
     switch (sortBy) {
       case "priceLowHigh":
-        list.sort((a, b) => num(a.unitPrice, Number.POSITIVE_INFINITY) - num(b.unitPrice, Number.POSITIVE_INFINITY));
+        list.sort(
+          (a, b) =>
+            num(a.singlePriceNum ?? a.price, Number.POSITIVE_INFINITY) -
+            num(b.singlePriceNum ?? b.price, Number.POSITIVE_INFINITY)
+        );
         break;
       case "priceHighLow":
-        list.sort((a, b) => num(b.unitPrice, Number.NEGATIVE_INFINITY) - num(a.unitPrice, Number.NEGATIVE_INFINITY));
+        list.sort(
+          (a, b) =>
+            num(b.singlePriceNum ?? b.price, Number.NEGATIVE_INFINITY) -
+            num(a.singlePriceNum ?? a.price, Number.NEGATIVE_INFINITY)
+        );
         break;
       case "percentOffLowHigh":
-        list.sort((a, b) => num(a.percentOff, Number.POSITIVE_INFINITY) - num(b.percentOff, Number.POSITIVE_INFINITY));
+        list.sort(
+          (a, b) => pct(a.savePercent, Number.POSITIVE_INFINITY) - pct(b.savePercent, Number.POSITIVE_INFINITY)
+        );
         break;
       case "percentOffHighLow":
-        list.sort((a, b) => num(b.percentOff, Number.NEGATIVE_INFINITY) - num(a.percentOff, Number.NEGATIVE_INFINITY));
+        list.sort(
+          (a, b) => pct(b.savePercent, Number.NEGATIVE_INFINITY) - pct(a.savePercent, Number.NEGATIVE_INFINITY)
+        );
         break;
       default:
         break;
@@ -168,10 +196,10 @@ export default function HomePage() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
             >
-              <option value="priceLowHigh">Unit price: low → high</option>
-              <option value="priceHighLow">Unit price: high → low</option>
-              <option value="percentOffLowHigh">Percent off: low → high</option>
-              <option value="percentOffHighLow">Percent off: high → low</option>
+              <option value="priceLowHigh">Pris: låg → hög</option>
+              <option value="priceHighLow">Pris: hög → låg</option>
+              <option value="percentOffLowHigh">Rabatt: låg → hög</option>
+              <option value="percentOffHighLow">Rabatt: hög → låg</option>
             </select>
 
             <div className="mt-4 text-sm text-gray-600">
@@ -187,7 +215,7 @@ export default function HomePage() {
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {Array.isArray(sortedItems) ? (
             sortedItems.map((item, index) => (
-              <OfferCard key={`${item.store}-${item.name}-${index}`} item={item} />
+              <OfferCard key={`${item.name}-${index}`} item={item} />
             ))
           ) : (
             <p>Loading...</p>
@@ -198,27 +226,24 @@ export default function HomePage() {
   );
 }
 
-function OfferCard({ item }: { item: ScrapedItem }) {
+function OfferCard({ item }: { item: WillysItem }) {
   const title = item.name ?? "Unnamed item";
 
-  const unitLabel =
-    item.unitPrice != null
-      ? item.unit
-        ? `${formatKr(item.unitPrice)} / ${item.unit}`
-        : `${formatKr(item.unitPrice)}`
-      : "—";
+  const priceLabel = formatSek(item.price);
+  const singlePriceLabel = item.singlePriceNum ? formatSek(item.singlePriceNum) : "—";
+  const productUrl = resolveWillysUrl(item.href);
 
   return (
     <Card className="p-4 flex flex-col">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold leading-snug">{title}</h2>
-          <div className="text-sm text-gray-600">{item.store ?? "—"}</div>
+          <div className="text-sm text-gray-600">Willys</div>
         </div>
 
-        {item.percentOff != null && Number.isFinite(item.percentOff) ? (
+        {item.savePercent != null && Number.isFinite(item.savePercent) ? (
           <div className="text-sm font-semibold">
-            -{formatPct(item.percentOff)}
+            -{formatPct(item.savePercent)}
           </div>
         ) : (
           <div className="text-sm text-gray-500">—</div>
@@ -241,38 +266,56 @@ function OfferCard({ item }: { item: ScrapedItem }) {
         </div>
       )}
 
-      {item.description ? (
-        <p className="mt-3 text-sm text-gray-700">{item.description}</p>
+      {item.brand ? (
+        <p className="mt-3 text-sm text-gray-700">{item.brand}</p>
       ) : null}
 
       <div className="mt-3 text-sm text-gray-700 space-y-1">
         <div>
-          <span className="font-medium">Price:</span>{" "}
-          <span>{item.priceText ?? "—"}</span>
+          <span className="font-medium">Pris:</span>{" "}
+          <span>{priceLabel}</span>
         </div>
         <div>
-          <span className="font-medium">Unit price:</span>{" "}
-          <span>{unitLabel}</span>
+          <span className="font-medium">Styckpris:</span>{" "}
+          <span>{singlePriceLabel}</span>
         </div>
 
         <div className="flex gap-4">
           <div>
-            <span className="font-medium">Ord:</span> {formatKr(item.ordPrice)}
+            <span className="font-medium">Ord:</span> {formatSek(item.ordPrice)}
           </div>
           <div>
-            <span className="font-medium">Save:</span> {formatKr(item.saveAmount)}
+            <span className="font-medium">Rabatt:</span> {formatPct(item.savePercent)}
           </div>
         </div>
 
         <div>
           <span className="font-medium">Max köp:</span>{" "}
-          <span>{item.maxQty ?? "—"}</span>
+          <span>{item.maximumAmount ?? "—"}</span>
         </div>
+
+        {item.multiPrefix ? (
+          <div>
+            <span className="font-medium">Erbjudande:</span>{" "}
+            <span>{item.multiPrefix}</span>
+          </div>
+        ) : null}
+
+        {item.saveText ? (
+          <div>
+            <span className="font-medium">Villkor:</span>{" "}
+            <span>{item.saveText}</span>
+          </div>
+        ) : null}
+
+        {item.isKiloPrice ? (
+          <div className="text-gray-500">Kilopris</div>
+        ) : null}
       </div>
 
-      {item.productUrl ? (
+      {productUrl ? (
         <a
-          href={item.productUrl}
+          href={productUrl}
           target="_blank"
           rel="noreferrer"
           className="mt-4 text-sm underline"
